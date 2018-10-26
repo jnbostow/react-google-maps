@@ -12,3 +12,19 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+.App {
+  display: flex;
+  flex-flow: nowrap row;
+}
+#map {
+  height: 100vh;
+  flex-grow: 1;
+}
+#list {
+  height: 100vh;
+  flex-grow: 0;
+  flex-basis: 250px;
+}
+#list ul {
+  list-style: none;
+}

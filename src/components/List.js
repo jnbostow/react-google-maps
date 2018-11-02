@@ -18,14 +18,27 @@ class List extends Component {
     }
 
     render() {
-        const { locations } = this.props
+        const { locations, showList, showListToggle } = this.props
 
         return (
-            <div id="list">
-                <input type="text" value={this.state.value} onChange={this.handleChange} />
+            <div id="list" className={showList? 'show' : 'hide'} role="menu">
+                <h1>Lake City <span className="header-sub">Favorite Food & Lounge</span></h1>
+                <input placeholder="  enter filter"
+                       type="text"
+                       value={this.state.value}
+                       onChange={this.handleChange}
+                       aria-label="filter"
+                />
+
                 <ul>
                     {locations.map((location, idx) => (
-                        <li key={idx}>{location.title}</li>
+                        <li key={idx} ref={location.ref}
+                            onClick={()=> {window.innerWidth < 600 && showListToggle('hide')}}
+                            tabIndex="0"
+                        >
+                            {location.title}
+
+                        </li>
                     ))}
                 </ul>
             </div>

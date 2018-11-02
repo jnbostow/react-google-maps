@@ -1,12 +1,17 @@
 import React, { Component } from 'react';
+import { createInfoWindowDetails } from "../helpers";
+import ReactDOM from "react-dom";
 
 class Map extends Component {
     constructor(props) {
         super(props)
         this.getGoogleMaps = this.getGoogleMaps.bind(this)
-        this.addMarkers = this.addMarkers.bind(this)
+        this.updateMarkers = this.updateMarkers.bind(this)
+        this.removeMarkers = this.removeMarkers.bind(this)
+        this.initMarkers = this.initMarkers.bind(this)
         this.state = {
             map: {},
+            infowindow: {},
             markers: []
         }
     }
@@ -39,10 +44,33 @@ class Map extends Component {
         return this.googleMapsPromise;
     }
 
-    addMarkers() {
+    updateMarkers() {
+        const { showLocations } = this.props
+        const { map, markers } = this.state
+
+        markers.forEach(marker => {
+            showLocations.forEach(location => {
+                if(location.title === marker.title) {
+                    marker.setMap(map)
+                }
+            })
+
+        })
+    }
+
+    removeMarkers() {
+        const { markers } = this.state
+
+        markers.forEach(marker => {
+            marker.setMap(null)
+        })
+    }
+
+    initMarkers() {
         let bounds = new window.google.maps.LatLngBounds();
-        const {showLocations, locations} = this.props
+        const {locations} = this.props
         const map = this.state.map
+        const infowindow = new window.google.maps.InfoWindow()
 
         const markers = locations.map((location, idx) => {
             const position = location.location;
@@ -54,30 +82,38 @@ class Map extends Component {
                 animation: window.google.maps.Animation.DROP,
                 id: idx
             });
-            if (location.show === true) {
 
-                // Create an onclick event to open an infowindow at each marker.
-                // marker.addListener('click', function() {
-                //     populateInfoWindow(this, largeInfowindow);
-                // });
+            marker.setMap(map)
+            bounds.extend(marker.position);
 
-                marker.setMap(map)
-                bounds.extend(marker.position);
-                return marker
-            } else {
-                console.log('in marker being null: ', marker)
-                marker.setVisible(false)
-                console.log('after marker is set to null: ', marker)
-                return null
-            }
+            marker.addListener('click', function() {
+                createInfoWindowDetails(map, marker, location, infowindow)
+            });
+
+            return marker;
         })
+
 
         //adding map markers
         this.setState({
-            markers: markers.filter(marker => marker !== null)
+            markers: markers
+        })
+
+        //add infowindow to state
+        this.setState({
+            infowindow: new window.google.maps.InfoWindow(),
         })
 
         map.fitBounds(bounds);
+
+        locations.forEach(location => {
+            ReactDOM.findDOMNode(location.ref.current).addEventListener("click", function() {
+                const location = locations.filter(location => location.title === this.innerText)[0]
+                const marker = markers.filter(marker => marker.title === this.innerText)[0]
+
+                createInfoWindowDetails(map, marker, location, infowindow)
+            })
+        })
     }
 
     componentWillMount() {
@@ -95,43 +131,21 @@ class Map extends Component {
             });
             this.setState(state => ({
                 map: map,
+                infowindow: state.infowindow,
                 markers: state.markers
             }))
-
-            this.addMarkers();
-
-            // This function will loop through the markers array and display them all.
-            // function showListings() {
-            //     var bounds = new google.maps.LatLngBounds();
-            //     // Extend the boundaries of the map for each marker and display the marker
-            //     for (var i = 0; i < markers.length; i++) {
-            //         markers[i].setMap(map);
-            //         bounds.extend(markers[i].position);
-            //     }
-            //
-            //     map.fitBounds(bounds);
-            // }
+            this.initMarkers();
         });
     }
 
-    componentDidUpdate(prevProps) {
-        // Typical usage (don't forget to compare props):
-        //console.log(this.props.locations)
-        const shouldUpdate = this.props.locations.some(location => {
-            const isMarker = this.state.markers.some(marker => marker.title === location.title)
-            //console.log(location.title, ' should not update: ', isMarker === location.show)
-            return !(isMarker === location.show)
-        })
-
-        if(shouldUpdate) {
-            this.addMarkers()
-        }
-
+    componentDidUpdate() {
+        this.removeMarkers()
+        this.updateMarkers()
     }
 
     render() {
         return (
-            <div id="map" ref="map"></div>
+            <div id="map" ref="map" aria-label="Google Maps" role="application" aria-hidden="true"></div>
         )
     }
 }
